@@ -1,0 +1,21 @@
+{
+  "name": "ksiegi-wieczyste",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/main.js",
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^6.5.0",
+    "node-fetch": "^3.3.2",
+    "playwright": "^1.51.0",
+    "ts-command-line-args": "^2.5.1",
+    "typescript": "^5.8.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.0",
+    "@types/node": "^22.13.10",
+    "prisma": "^6.5.0"
+  }
+}
