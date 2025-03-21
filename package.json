@@ -1,11 +1,11 @@
 {
-  "name": "ksiegi-wieczyste",
+  "name": "land-registry-scrapper-pl",
   "version": "1.0.0",
-  "description": "",
+  "description": "A Playwright-based automation tool for fetching and extracting data from the Polish land and mortgage register (Elektroniczna Księga Wieczysta).",
   "main": "dist/main.js",
   "scripts": {},
-  "author": "",
-  "license": "ISC",
+  "author": "Bartosz Majkut",
+  "license": "MIT License",
   "dependencies": {
     "@prisma/client": "^6.5.0",
     "node-fetch": "^3.3.2",
@@ -17,5 +17,12 @@
     "@playwright/test": "^1.51.0",
     "@types/node": "^22.13.10",
     "prisma": "^6.5.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bmajkut/land-registry-scrapper-pl.git"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   }
 }
