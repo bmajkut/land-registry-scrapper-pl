@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "A Playwright-based automation tool for fetching and extracting data from the Polish land and mortgage register (Elektroniczna Księga Wieczysta).",
   "main": "dist/main.js",
-  "scripts": {},
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js"
+  },
   "author": "Bartosz Majkut",
   "license": "MIT License",
   "dependencies": {

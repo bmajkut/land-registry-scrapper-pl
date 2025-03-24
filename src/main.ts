@@ -1,4 +1,6 @@
 import { Page, chromium } from 'playwright';
+import { document, person } from './interfaces';
+import { parseII, parseIO } from './parsers';
 
 import { parse } from 'ts-command-line-args';
 
@@ -43,6 +45,10 @@ async function runWithRetry(
     while (true) {
         const browser = await chromium.launch({ headless: false });
         const page = await browser.newPage();
+        page.setViewportSize({
+            width: 250,
+            height: 250
+        });
         try {
             await func(page);
             await browser.close();
@@ -62,6 +68,11 @@ async function runWithRetry(
 
 async function performSearch(page: Page, departmentCode: string, documentNumber: number) {
     const checkDigit = calculateControlDigit(departmentCode, documentNumber.toString().padStart(8, `0`));
+    let document: document = {
+        department: departmentCode,
+        number: documentNumber.toString().padStart(7, '0'),
+        checkDigit: checkDigit.toString(),
+    };
     page.context().clearCookies();
     await page.goto(`https://przegladarka-ekw.ms.gov.pl/eukw_prz/KsiegiWieczyste/wyszukiwanieKW`, {
         timeout: 5000
@@ -75,18 +86,52 @@ async function performSearch(page: Page, departmentCode: string, documentNumber:
     await page.waitForLoadState(`domcontentloaded`);
     await page.waitForTimeout(500);
     const errorLocator = page.locator("#cyfraKontrolna\\.errors");
-    if (await errorLocator.isVisible()) {
-        console.log(`${departmentCode}/${documentNumber.toString().padStart(7, '0')}/${checkDigit}: Nie znaleziono księgi wieczystej.`);
-    } else {
-        console.log(`${departmentCode}/${documentNumber.toString().padStart(7, '0')}/${checkDigit}: Znaleziono księgę wieczystą.`);
-        const documentNotFoundErrorElement = await page.waitForSelector("xpath=/html/body/div/div[2]/div/div[2]/div", { timeout: 2000 });
-        if (documentNotFoundErrorElement) {
-            const documentNotFoundErrorElementInnerText = await documentNotFoundErrorElement.innerText();
-            if (documentNotFoundErrorElementInnerText.includes("nie została odnaleziona")) {
-                console.log(`${departmentCode}/${documentNumber.toString().padStart(7, '0')}/${checkDigit}: Nie odnaleziono księgi wieczystej.`);
-            }
+    if (await errorLocator.count() > 0) {
+        console.log(`${document.department}/${document.number}/${document.checkDigit}: Nie znaleziono księgi wieczystej.`);
+        return;
+    }
+    const documentNotFoundErrorElement = page.locator("xpath=/html/body/div/div[2]/div/div[2]/div");
+    if (await documentNotFoundErrorElement.count() > 0) {
+        const documentNotFoundErrorElementInnerText = await documentNotFoundErrorElement.innerText();
+        if (documentNotFoundErrorElementInnerText.includes("nie została odnaleziona")) {
+            console.log(`${document.department}/${document.number}/${document.checkDigit}: Nie odnaleziono księgi wieczystej.`);
+            return;
         }
     }
+
+    console.log(`${document.department}/${document.number}/${document.checkDigit}: Znaleziono księgę wieczystą.`);
+    await page.click("button#przyciskWydrukZupelny");
+    await page.waitForLoadState(`domcontentloaded`);
+    await page.waitForTimeout(200);
+
+    await page.click('input[value="Dział I-O"]');
+    await page.waitForLoadState(`domcontentloaded`);
+    await page.waitForTimeout(200);
+    const locator = page.locator("#contentDzialu");
+    if (await locator.count() === 0) {
+        console.log(`\t${document.department}/${document.number}/${document.checkDigit}: Nie znaleziono rozdziału I-O.`);
+        return;
+    }
+    const tables = page.locator('#contentDzialu table');
+    if (await tables.count() < 7) {
+        console.log(`\t${document.department}/${document.number}/${document.checkDigit}: Nie znaleziono rozdziału tabel.`);
+    }
+
+    document.location = await parseIO(page);
+
+    await page.click('input[value="Dział II"]');
+    await page.waitForLoadState(`domcontentloaded`);
+    await page.waitForTimeout(200);
+    if (await locator.count() === 0) {
+        console.log(`\t${document.department}/${document.number}/${document.checkDigit}: Nie znaleziono rozdziału II.`);
+        return;
+    }
+    if (await tables.count() < 7) {
+        console.log(`\t${document.department}/${document.number}/${document.checkDigit}: Nie znaleziono rozdziału tabel.`);
+    }
+
+    document.owners = await parseII(page);
+    console.log(document);
 }
 
 async function main() {
